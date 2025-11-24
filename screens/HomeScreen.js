@@ -1,12 +1,15 @@
 import { useState } from "react";
-import { StyleSheet, View, Text, Keyboard } from 'react-native';
-import { Appbar, TextInput, Button } from 'react-native-paper';
+import { StyleSheet, View, Keyboard } from 'react-native';
+import { Appbar, TextInput, Button, Snackbar } from 'react-native-paper';
 import { fetchWeather } from "../api";
+import WeatherCard from "../components/WeatherCard";
 
-export default function HomeScreen() {
+export default function HomeScreen({ onAddFavorite }) {
   const [keyword, setKeyword] = useState("");
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
   const handleFetch = () => {
     Keyboard.dismiss();
@@ -18,6 +21,12 @@ export default function HomeScreen() {
       })
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
+  };
+
+  const handleAddFavorite = (weatherData) => {
+    onAddFavorite(weatherData);
+    setSnackbarMessage(`${weatherData.name} added to favorites`);
+    setSnackbarVisible(true);
   };
 
   return (
@@ -39,7 +48,6 @@ export default function HomeScreen() {
         <Button
           mode="contained"
           icon="search-web"
-          style={styles.searchButton}
           loading={loading}
           onPress={handleFetch}
         >
@@ -47,12 +55,18 @@ export default function HomeScreen() {
         </Button>
       </View>
       {weather && (
-      <View style={styles.result}>
-        <Text>{weather.name}</Text>
-        <Text>{Math.round(weather.main.temp)} °C</Text>
-        <Text>{weather.weather[0].description}</Text>
-      </View>
-    )}
+        <WeatherCard
+          weather={weather}
+          onAddFavorite={handleAddFavorite}
+        />
+      )}
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={2000}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </View>
   );
 }
@@ -74,11 +88,5 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginRight: 8,
-  },
-  searchButton: {
-  },
-  result: {
-  marginTop: 24,
-  paddingHorizontal: 16,
   },
 });
