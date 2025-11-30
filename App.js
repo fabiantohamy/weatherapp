@@ -1,30 +1,55 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PaperProvider } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons'
 import HomeScreen from "./screens/HomeScreen";
 import FavoritesScreen from "./screens/FavoritesScreen";
+import { fetchFavoritesFromDb, addFavoriteToDb, removeFavoriteFromDb } from "./services/favoritesService";
 
 const Tab = createBottomTabNavigator();
 
 export default function App() {
   const [favorites, setFavorites] = useState([]);
 
-  const handleAddFavorite = (weather) => {
-    if (!weather) return;
-  
-    setFavorites((prev) => {
-      if (prev.some((fav) => fav.id === weather.id)) {
-        return prev;
+  useEffect(() => {
+    const loadFavorites = async () => {
+      try {
+        const dbFavorites = await fetchFavoritesFromDb();
+        setFavorites(dbFavorites);
+      } catch (error) {
+        console.error("Error loading favorites:", error);
       }
-      return [...prev, weather];
-    });
-  };
+    };
+
+    loadFavorites();
+  }, []);
+
+  const handleAddFavorite = async (weather) => {
+    if (!weather) return;
+    try {
+      await addFavoriteToDb(weather);
   
-  const handleRemoveFavorite = (id) => {
-    setFavorites((prev) => prev.filter((fav) => fav.id !== id));
+      setFavorites((prev) => {
+        if (prev.some((fav) => String(fav.id) === String(weather.id))) {
+          return prev;
+        }
+        return [...prev, weather];
+      });
+    } catch (error) {
+      console.error("Error adding favorite:", error);
+    }
+  };  
+  
+  const handleRemoveFavorite = async (id) => {
+    try {
+      await removeFavoriteFromDb(id);
+
+      setFavorites((prev) => prev.filter((fav) => fav.id !== id));
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+    }
   };
 
   return (
